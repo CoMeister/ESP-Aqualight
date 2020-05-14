@@ -1,20 +1,30 @@
 /**
- * Relire et réorganiser le code [ok]
- * Corriger gestion entre dernier et premier point [TODO]
+ * Use ip from datas.d to web page for webSocket IP[TODO/1]
+ * Manage summer/winter hour[TODO/1]
+ * 
+ * Possibility to change the number of point on chart[TODO/2]
+ * Possibility to change network parameter.[TODO/2]
+ * Physic button to change state (Chart light level, ON, OFF).[TODO/2]
+ * Find a solution to have terminale on the Aqualight box (LCD, TFT, OLED, 7 segment)[TODO/2]
+ * 
+ * Show a cursor on the chart[TODO/3]
+ * 
+ * Rewrite and optimize code[TODO/4]
+ * 
+ * Do a 2.0 version when we use C++ class[TODO/5]
+ * 
+ * Corriger gestion entre dernier et premier point [OK]
  * Utiliser le webSocket pour toutes communications [OK]
- * Gerer heure hiver et heure d'été [TODO]
  * Enregistrer le tableau(le graphique) en mémoire local(fichier ou autre) [OK]
  * Ajouter une fonction pour paramétrer la connexion et l'ip fixe [OK]
- * Ajouter une fonction pour changer les paramètres réseau.[TODO]
  * Enregistrer les paramètres de connexion en local [OK]
- * Apprendre à utiliser GIT avec Github [TODO]
  * Gerer le décalage en secondes [OK]
- * Gerer si on ne recoit rien des servers NTP   -->   Gerer si on pert la connexion internet. (ping pool.ntp.org) [TODO]
- * Gerer les erreurs lie à l'ouverture/fermuture des messages JSON [TODO/?/OK]
- * Afficher un curseur sûr le graphique[TODO]
+ * Gerer si on ne recoit rien des servers NTP   -->   Gerer si on pert la connexion internet. (ping pool.ntp.org) [OK]
+ * Gerer les erreurs lie à l'ouverture/fermuture des messages JSON [OK]
  * 
- * Utiliser ip de datas.d depuis le web[TODO]
- * saucisse
+ * With this project we can manage led ramp of aquarium. We can use use custom or generic ramp led. Possibility to tune value of light on a web page.
+ * On first burn a wifi access point is created and you can connect on it. When you are connected you have to enter the SSID, PASWD of your wifi network and a static ip.
+ * Finally you can access st your Aqualight box to manage led level by second.
  */
 
 #include <Arduino.h>
@@ -25,10 +35,11 @@
 #include <ESPAsyncUDP.h>
 #include <FS.h>
 #include <ArduinoJson.h>
-#define L0 4
-#define L1 12
 
-//TODO: gérer entre le dernier et le premier point
+const int lights[] = {4, 12}; //pin
+
+const int nbrChartPoint = 6;
+
 
 int l0Intensity = 0;
 int l1Intensity = 0;
@@ -51,9 +62,6 @@ String dataStrTab[3]; //buffer ws
 String dataStrTabTest[3];
 bool co = false;
 
-const int nbrGate = 6;
-const int lights[] = {L0, L1};
-
 unsigned int localPort = 123;
 IPAddress timeServerIP;
 const char* ntpServerName = "ch.pool.ntp.org";
@@ -62,7 +70,7 @@ byte packetBuffer[ NTP_PACKET_SIZE];
 AsyncUDP udp;
 unsigned long epocheTime = 0;
 
-int powerTimes[nbrGate/*Number of hour key point*/][2/*ledID*/][2/*h in sec; percent of light*/];
+int powerTimes[nbrChartPoint][2/*ledID*/][2/*h in sec; percent of light*/];
 
 unsigned int currentTime = 0;
 unsigned long currentTime0 = -300000;  //sendNTPpacket() at start
@@ -133,7 +141,7 @@ void sendNTPpacket() {
 }
 
 
-void power(int currentSecond, int ledID){//int powerTimes[nbrGate0/*Number of hour key point*/][2/*ledID*/][2/*h in sec; percent of light*/];
+void power(int currentSecond, int ledID){//int powerTimes[nbrChartPoint0/*Number of hour key point*/][2/*ledID*/][2/*h in sec; percent of light*/];
   volatile int ledIntensity;
   volatile int point0[2];   //point petite valeur le plus proche point0[0] = hinSec, point0[1] = percent of light
   volatile int point1[2];   //point grande valeur le plus proche
@@ -142,7 +150,7 @@ void power(int currentSecond, int ledID){//int powerTimes[nbrGate0/*Number of ho
   volatile int hugeHInSec = 86401; //24H in second + 1 sec
 
 //trouver point0 dynamiquement
-  for(int i = 0; i < nbrGate; i++){
+  for(int i = 0; i < nbrChartPoint; i++){
     if(powerTimes[i][ledID][0] > -1){
 
       if(powerTimes[i][ledID][0] < currentSecond && powerTimes[i][ledID][0] >= littleHInSec){ //test all hour key of [ledID] h in sec | trouver le petit point
@@ -151,7 +159,11 @@ void power(int currentSecond, int ledID){//int powerTimes[nbrGate0/*Number of ho
         littleHInSec = powerTimes[i][ledID][0];
       }
 
-      if(powerTimes[i][ledID][0] > currentSecond && powerTimes[i][ledID][0] <= hugeHInSec){ //test all hour key of [ledID] h in sec | trouver le grand point
+      if(point0[0] == powerTimes[nbrChartPoint-1][ledID][0] && point0[1] == powerTimes[nbrChartPoint-1][ledID][1]){
+        point1[0] = powerTimes[0][ledID][0];
+        point1[1] = powerTimes[0][ledID][1];
+        hugeHInSec = powerTimes[0][ledID][0];
+      }else if(powerTimes[i][ledID][0] > currentSecond && powerTimes[i][ledID][0] <= hugeHInSec){ //test all hour key of [ledID] h in sec | trouver le grand point
         point1[0] = powerTimes[i][ledID][0];
         point1[1] = powerTimes[i][ledID][1];
         hugeHInSec = powerTimes[i][ledID][0];
@@ -223,7 +235,7 @@ void openJson(String json, int lightIndex){//receive and interpret Json from cli
       return;
     }
 
-    for(int i = 0; i < 6; i++){
+    for(int i = 0; i < nbrChartPoint; i++){
       for(int j = 0; j < 2; j++){   //0 -> hinsec, 1 -> percent | 0 hinsec 1 percentoflight
         String sj = staticJson[i][j];
         powerTimes[i][lightIndex][j] = sj.toInt();
@@ -235,7 +247,7 @@ String getJson(int lightIndex){ //Send datas as Json to the client
   StaticJsonDocument<450> jsonObj;
   jsonObj["id"] = lightIndex;
   //Serial.println("getJson method :");
-  for(int i = 0; i < 6; i++){
+  for(int i = 0; i < nbrChartPoint; i++){
     for(int j = 0; j < 2; j++){
       jsonObj["data" + String(j)][i] = powerTimes[i][lightIndex][j];
       jsonObj["data" + String(j)][i] = powerTimes[i][lightIndex][j];    //{"id":0,"data0":[powerTimes[0][0][0],powerTimes[1][0][0],0,0,0,0],"data1":[0,14399,28798,43197,57596,71995]}
@@ -568,7 +580,7 @@ void setup() {
 
   int time = 0;
 
-  for(int i = 0; i < nbrGate; i++){//powerTimes[nbrGate/*Number of hour key point*/][2/*ledID*/][2/*h in sec; percent of light*/];
+  for(int i = 0; i < nbrChartPoint; i++){//powerTimes[nbrChartPoint/*Number of hour key point*/][2/*ledID*/][2/*h in sec; percent of light*/];
     for(int j = 0; j < 2; j++){
       powerTimes[i][0][1] = 0;
       powerTimes[i][j][0] = time;

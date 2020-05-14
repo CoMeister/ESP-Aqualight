@@ -64,6 +64,19 @@ var config = {
                 x: new Date('2020-03-25T12:00:00'),
                 y: 50
             }]
+        },{
+            label: 'Now',
+            backgroundColor: 'rgba(130, 59, 100, 0.3)',    //couleur des points
+            borderColor: 'rgba(130, 59, 100, 0.3)',        //couleur trait et bord point
+            lineTension: 0,
+            fill: false,
+            data: [{
+                x: new Date('2020-03-25T12:00:00'),     //Valeur dynamiques depuis le c++ -> ok
+                y: 0
+            }, {
+                x: new Date('2020-03-25T12:00:00'),
+                y: 100
+            }],
         }]
     },options: {
         tooltips:{
