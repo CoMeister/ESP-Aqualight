@@ -1,6 +1,6 @@
 var ws;
 
-ws = new WebSocket("ws://192.168.1.1/ws");
+ws = new WebSocket("ws://"+location.host+"/ws");
 
 /*$("#send").click(function(){
     var ssid = $('#ssid').val();

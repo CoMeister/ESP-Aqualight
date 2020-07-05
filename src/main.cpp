@@ -4,7 +4,6 @@
  * 
  * Possibility to change the number of point on chart[TODO/2]
  * Possibility to change network parameter.[TODO/2]
- * Physic button to change state (Chart light level, ON, OFF).[TODO/2]
  * Find a solution to have terminale on the Aqualight box (LCD, TFT, OLED, 7 segment)[TODO/2]
  * 
  * Show a cursor on the chart[TODO/3]
@@ -21,6 +20,7 @@
  * Gerer le décalage en secondes [OK]
  * Gerer si on ne recoit rien des servers NTP   -->   Gerer si on pert la connexion internet. (ping pool.ntp.org) [OK]
  * Gerer les erreurs lie à l'ouverture/fermuture des messages JSON [OK]
+ * Web button to change state (Chart light level, ON, OFF).[OK]
  * 
  * With this project we can manage led ramp of aquarium. We can use use custom or generic ramp led. Possibility to tune value of light on a web page.
  * On first burn a wifi access point is created and you can connect on it. When you are connected you have to enter the SSID, PASWD of your wifi network and a static ip.
@@ -40,15 +40,14 @@ const int lights[] = {4, 12}; //pin
 
 const int nbrChartPoint = 6;
 
-
-int l0Intensity = 0;
-int l1Intensity = 0;
-
 String ssid;
 String password;
 
 bool isAP = true;
 bool connect = true;
+
+bool forceLightLevel = false;
+int lightLevel = 0;
 
 const char *locSsid     = "aqualight";
 const char *locPassword = "fish1234";
@@ -59,7 +58,6 @@ static IPAddress gateway(192, 168, 1, 1);
 static IPAddress subnet(255, 255, 255, 0);
 
 String dataStrTab[3]; //buffer ws
-String dataStrTabTest[3];
 bool co = false;
 
 unsigned int localPort = 123;
@@ -322,23 +320,53 @@ void netStart(String ssid, String pass, IPAddress ip){
   }
 }
 
-void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
+void writeDatsIntoFile(){
+  File datasDFile = SPIFFS.open("/datas.d", "w");
+
+    Serial.println("/datas.d is writting:");
+
+    for(int i = 0; i < 3; i++){
+      Serial.println(dataStrTab[i]);
+      datasDFile.println(dataStrTab[i]+'\0');
+      dataStrTab[i] = "";
+    }
+    datasDFile.close();
+
+
+    File datas = SPIFFS.open("/datas.d", "r");
+    Serial.println("/datas.d content-------:");
+    String fileContent;
+    //String data[3];
+    //int fileIndex0 = -1;
+    //int fileIndex1 = 0;
+    //int j = 0;
+
+    while(datas.available()){
+      Serial.print((char)datas.read());
+    }
+    Serial.println("-------");
+
+    datas.close();
+}
+
+void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t * data, size_t len){
   if(type == WS_EVT_CONNECT){ //On connection server send data as Json to the client
     client->text(getJson(0));
     client->text(getJson(1));
-  }else if(type == WS_EVT_DATA){
-    String dataStr;
-    String dataBrut = String((char *)data);
-    for(unsigned int i = 0; i < dataBrut.length(); i++){
-      if(dataBrut.charAt(i)=='\n' || isGraph(dataBrut.charAt(i))){
-        dataStr += dataBrut.charAt(i);
-      }
-    }
+    client->text("lightLevel:" + String(lightLevel)  + ",forceLight:" + String(forceLightLevel));
+  }else if(type == WS_EVT_DATA){//---------------------------------------------------------------------Received data format
+    //String dataStr = String((char *)&data[0]);  //add random char at end
+    char dataBufer[len];             
+    for (uint8_t i = 0; i < len; i++) {                 
+      dataBufer[i] = data[i];             
+    }             
+    dataBufer[len] = '\0';
 
+    String dataStr = dataBufer;
+    
     Serial.println("WS_DATA = " + dataStr);
-    //String idData[2] = {dataStr.substring(0, 1),dataStr.substring(1)};
 
-    if(dataStr.substring(0,1).equals("0")){
+    if(dataStr.substring(0,1).equals("0")){//----------------------------------------------------------change light 0 configuration
       int indexChar = 0;
       for(unsigned int i = 0; i < dataStr.length(); i++){
         if(dataStr.charAt(i) == ']'){
@@ -349,17 +377,42 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
 
       dataStrTab[0] = dataStr;
       openJson(dataStrTab[0].substring(1), dataStrTab[0].substring(0,1).toInt());
-    }else if(dataStr.substring(0,1).equals("1")){
+
+      writeDatsIntoFile();
+
+    }else if(dataStr.substring(0,1).equals("1")){//----------------------------------------------------change light 1 configuration
       int indexChar = 0;
       for(unsigned int i = 0; i < dataStr.length(); i++){
         if(dataStr.charAt(i) == ']'){
           indexChar = i;
         }
       }
+
+
       dataStr = dataStr.substring(0, indexChar+1);
       dataStrTab[1] = dataStr;
       openJson(dataStrTab[1].substring(1), dataStrTab[1].substring(0,1).toInt());
-    }else{
+
+      writeDatsIntoFile();
+
+    }else if(dataStr.substring(0,4).equals("true")){//------------------------------------toggle forced light
+      Serial.println("true true true true true true true true  ---->> " + dataStr);
+      forceLightLevel = true;
+    }else if(dataStr.substring(0,5).equals("false")){
+      Serial.println("false false false false false false false false ---->> " + dataStr);
+      forceLightLevel = false;
+    }else if(dataStr.substring(0,dataStr.indexOf(':')).equals("lightLevel")){ //TODO: ne fonctionne pas
+      Serial.println("lightLevel ---->> " + dataStr);
+      lightLevel = dataStr.substring(11,14).toInt();
+      /*int n[3] = {0,0,0};
+      for(int i = 11; i < 14; i++){
+        if(dataStr.substring(i; i+1) != null && isDigit(dataStr.substring(i; i+1))){
+          n[i-11] = dataStr.substring(i; i+1).toInt();
+        }
+      }
+      lightLevel = */
+      Serial.println(lightLevel);
+    }else{//-------------------------------------------------------------------------------------------Network configuration
       int indexChar = 0;
       for(unsigned int i = 0; i < dataStr.length(); i++){
         if(isDigit(dataStr.charAt(i))){
@@ -417,33 +470,8 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
       delay(200);
 
       co=true;
+      writeDatsIntoFile();
     }
-
-    File datasDFile = SPIFFS.open("/datas.d", "w");
-
-    Serial.println("/datas.d is writting:");
-
-    for(int i = 0; i < 3; i++){
-      Serial.println(dataStrTab[i]);
-      datasDFile.println(dataStrTab[i]+'\0');
-    }
-    datasDFile.close();
-
-
-    File datas = SPIFFS.open("/datas.d", "r");
-    Serial.println("/datas.d content-------:");
-    String fileContent;
-    //String data[3];
-    //int fileIndex0 = -1;
-    //int fileIndex1 = 0;
-    //int j = 0;
-
-    while(datas.available()){
-      Serial.print((char)datas.read());
-    }
-    Serial.println("-------");
-
-    datas.close();
   }
 }
 
@@ -642,7 +670,7 @@ void setup() {
     if(isAP){
       request->send(SPIFFS, "/wifi_config.html", "text/html");
     }else{
-      Serial.println("send /index.html");
+      //Serial.println("send /index.html");
       request->send(SPIFFS, "/index.html", "text/html");
       //request->send(SPIFFS, "text/html", "/index.html");
     }
@@ -681,13 +709,18 @@ void setup() {
 void loop() {
   if (millis() - currentTime >= 1000) {
     if(!isAP){
-      infos_update();
-      Serial.print(getHours(epocheTime));
-      Serial.print(":");
-      Serial.print(getMinutes(epocheTime));
-      Serial.print(":");
-      Serial.println(getSeconds(epocheTime));
-      currentTime = millis();
+      if(forceLightLevel){
+        analogWrite(lights[0], lightLevel);
+        analogWrite(lights[1], lightLevel);
+      }else{
+        infos_update();
+        Serial.print(getHours(epocheTime));
+        Serial.print(":");
+        Serial.print(getMinutes(epocheTime));
+        Serial.print(":");
+        Serial.println(getSeconds(epocheTime));
+        currentTime = millis();
+      }
     }
   }
 

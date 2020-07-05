@@ -75,7 +75,7 @@ var config = {
                 y: 0
             }, {
                 x: new Date('2020-03-25T12:00:00'),
-                y: 100
+                y: maxRange
             }],
         }]
     },options: {
@@ -164,7 +164,7 @@ var config = {
                     labelString: 'value'
                 },
                 ticks: {
-                    max: 100,
+                    max: maxRange,
                     min: 0,
                     stepSize: 10
                 }
@@ -184,7 +184,7 @@ var config = {
                     rangeMax: {
                         // Format of max pan range depends on scale type
                         x: new Date('2020-03-25T23:59:59'),
-                        y: 100
+                        y: maxRange
                     },
     
                     // Panning directions. Remove the appropriate direction to disable 
@@ -200,9 +200,10 @@ var config = {
                         x: new Date('2020-03-25T00:00:00'),
                         y: 0
                     },
+
                     rangeMax: {
                         x: new Date('2020-03-25T23:59:59'),
-                        y: 100
+                        y: maxRange
                     },
     
                     // Zooming directions. Remove the appropriate direction to disable 
@@ -244,10 +245,12 @@ function getDatasFromChart(id){
 }
 
 $(document).ready(function(){
+    ipServ = location.host;
+    //ipServ = "192.168.1.6";
     ctx.height=300;
     myChart = new Chart(ctx, config);
     ws = new WebSocket("ws://" + ipServ + "/ws");
-
+    
     ws.addEventListener('message', function (event) {
         //console.log('Message from server ', event.data);
         //console.log('Receive JSON: ');
@@ -268,29 +271,52 @@ $(document).ready(function(){
         console.log("JSON: ");
         console.log("0" +jsonLed0);
         console.log("1" +jsonLed1);
-        ws.send("0" +jsonLed0);
-        ws.send("1" + jsonLed1);
+        ws.send("0" +jsonLed0);location
+        ws.send(JSON.stringify(this.checked));
+    })
+
+    $("#lightLevelRange").mouseup(function () {
+        console.log(this.value);
+        console.log("lightLevel:" + this.value);
+        ws.send("lightLevel:" + this.value)
     });
 
-    setInterval(function getData(){
+    $("#lightLevelRange").on("touchend", function () {
+        console.log(this.value);
+        console.log("lightLevel:" + this.value);
+        ws.send("lightLevel:" + this.value)
+    });
+
+    $("#lightLevelRange").on("input",function () {
+        $("#rangeLab").text("Light level: "+this.value + "%");
+    });
+
+    /*setInterval(function getData(){
         var xhttp = new XMLHttpRequest();
 
         xhttp.onreadystatechange = function()
         {
             if(this.readyState == 4 && this.status == 200)
             {
+                console.log("xhttp");
                 console.log(this.responseText);
             }
         };
-    }, 2000);
-
+    }, 2000);*/
+    $("#rangeLab").text("Light level: "+ $("#lightLevelRange").value + "%");
 
 });
 
 function receiveJson(wsData){
-    var msg = JSON.parse(wsData);
+    if(wsData.substring(0, wsData.indexOf(":")) == "lightLevel"){
+        console.log(wsData);
+        var lightLevel= parseInt(wsData.substring(0, wsData.indexOf(",")).substring(wsData.indexOf(":")+1)); 
+        $("#rangeLab").text("Light level: " + lightLevel + "%");
+        $("#lightLevelRange").val(lightLevel);
+    }else{
+        var msg = JSON.parse(wsData);
     
-    //for(var i = 0; i < 2; i++){
+        //for(var i = 0; i < 2; i++){
         var x = parseInt(msg["id"]);
 
         var brut = myChart.data.datasets[x].data;
@@ -329,6 +355,16 @@ function receiveJson(wsData){
             brut[j].x = new Date('2020-03-25T'+ hString + ':' + mString + ':' + sString);
             brut[j].y = parseInt(msg["data1"][j]);
         }
-    //}
-    myChart.update();
+        //}
+        myChart.update();
+    }
+}
+
+function outputUpdate(lightLevelRange) {
+    document.querySelector('#volume').value = maxRangeF;
+    maxRange = maxRangeF;
+    console.log(maxRange);
+    myChart.options.plugins.zoom.pan.rangeMax.y = maxRange;
+    myChart.options.scales.yAxes.ticks.max = maxRange;
+    myChart.options.plugins.zoom.rangeMax.y = maxRange;
 }

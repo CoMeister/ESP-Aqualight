@@ -61,6 +61,19 @@
 	height:500px;
 }
 
-html{
-	background-color: rgba(0, 0, 0, 0.192);
+input.vertical {
+	-webkit-appearance: slider-vertical;
+	writing-mode: bt-lr;
 }
+
+html{
+	background-color: rgba(255, 255, 255, 0);
+}
+
+.slider-wrapper input {
+	width: 150px;
+	height: 20px;
+	margin: 0;
+	transform-origin: 75px 75px;
+	transform: rotate(-90deg);
+  }
