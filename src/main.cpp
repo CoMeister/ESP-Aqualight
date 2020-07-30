@@ -1,16 +1,16 @@
 /**
- * Use ip from datas.d to web page for webSocket IP[TODO/1]
- * Manage summer/winter hour[TODO/1]
+ * Manage summer/winter hour[OK?]
  * 
  * Possibility to change the number of point on chart[TODO/2]
  * Possibility to change network parameter.[TODO/2]
- * Find a solution to have terminale on the Aqualight box (LCD, TFT, OLED, 7 segment)[TODO/2]
  * 
  * Show a cursor on the chart[TODO/3]
  * 
  * Rewrite and optimize code[TODO/4]
  * 
- * Do a 2.0 version when we use C++ class[TODO/5]
+ * Do a 2.0 version when we use C class[TODO/5]
+ * 
+ * Find a solution to have terminale on the Aqualight box (LCD, TFT, OLED, 7 segment)[TODO/Maybe]
  * 
  * Corriger gestion entre dernier et premier point [OK]
  * Utiliser le webSocket pour toutes communications [OK]
@@ -21,6 +21,7 @@
  * Gerer si on ne recoit rien des servers NTP   -->   Gerer si on pert la connexion internet. (ping pool.ntp.org) [OK]
  * Gerer les erreurs lie à l'ouverture/fermuture des messages JSON [OK]
  * Web button to change state (Chart light level, ON, OFF).[OK]
+ * Use ip from datas.d to web page for webSocket IP(Utilisation of "location.host" into JS code)[OK]
  * 
  * With this project we can manage led ramp of aquarium. We can use use custom or generic ramp led. Possibility to tune value of light on a web page.
  * On first burn a wifi access point is created and you can connect on it. When you are connected you have to enter the SSID, PASWD of your wifi network and a static ip.
@@ -106,7 +107,7 @@ unsigned long getEpocheTime(uint8_t * data){
   // now convert NTP time into UNIX timestamp:
   Serial.print("Unix time = ");
   // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
-  const unsigned long seventyYears = 2208988800UL;
+  const unsigned long seventyYears = 2208988800UL - 7200; //
   // subtract seventy years:
   unsigned long epoch = secsSince1900 - seventyYears;
   // print Unix time:
@@ -724,7 +725,7 @@ void loop() {
     }
   }
 
-  if (millis() - currentTime0 >= 300000) { //5 min
+  if (millis() - currentTime0 >= 60000) { //1 min
     if(!isAP){
       sendNTPpacket();      //send NTP packet to update time if is it false.
       currentTime0 = millis();

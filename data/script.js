@@ -4,7 +4,9 @@ var color = Chart.helpers.color;
 var myChart;
 var ws;
 var wsDatas = [];
-var ipServ = "192.168.1.6";
+var ipServ = "0.0.0.0";
+
+var maxRange = 100;
 
 
 var dragOptions = {
@@ -65,9 +67,9 @@ var config = {
                 y: 50
             }]
         },{
-            label: 'Now',
-            backgroundColor: 'rgba(130, 59, 100, 0.3)',    //couleur des points
-            borderColor: 'rgba(130, 59, 100, 0.3)',        //couleur trait et bord point
+            label: '00:00:00',
+            backgroundColor: 'rgba(130, 59, 100, 0)',    //couleur des points
+            borderColor: 'rgba(0,0,0,0.2)',        //couleur trait et bord point
             lineTension: 0,
             fill: false,
             data: [{
@@ -225,7 +227,7 @@ function startZoom() {
     //console.log("start zoom");
     myChart.options.plugins.zoom.pan.enabled = true;
     myChart.options.plugins.zoom.zoom.enabled = true;
-    myChart.update();   //réactiver zoom??
+    myChart.update();   //reactivate zoom??
 }
 
 function resetZoom(){
@@ -271,9 +273,15 @@ $(document).ready(function(){
         console.log("JSON: ");
         console.log("0" +jsonLed0);
         console.log("1" +jsonLed1);
-        ws.send("0" +jsonLed0);location
+        ws.send("0" +jsonLed0);
+        ws.send("1" +jsonLed0);
         ws.send(JSON.stringify(this.checked));
     })
+
+    $("#forceLight").click(function(){
+        console.log($("#forceLight").prop('checked').toString());
+        ws.send($("#forceLight").prop('checked').toString());
+    });
 
     $("#lightLevelRange").mouseup(function () {
         console.log(this.value);
@@ -285,9 +293,6 @@ $(document).ready(function(){
         console.log(this.value);
         console.log("lightLevel:" + this.value);
         ws.send("lightLevel:" + this.value)
-    });
-
-    $("#lightLevelRange").on("input",function () {
         $("#rangeLab").text("Light level: "+this.value + "%");
     });
 
@@ -304,6 +309,7 @@ $(document).ready(function(){
         };
     }, 2000);*/
     $("#rangeLab").text("Light level: "+ $("#lightLevelRange").value + "%");
+    updateNow();
 
 });
 
@@ -367,4 +373,39 @@ function outputUpdate(lightLevelRange) {
     myChart.options.plugins.zoom.pan.rangeMax.y = maxRange;
     myChart.options.scales.yAxes.ticks.max = maxRange;
     myChart.options.plugins.zoom.rangeMax.y = maxRange;
+}
+
+function checkTime(i) {
+    if (i < 10) {
+      i = "0" + i;
+    }
+    return i;
+  }
+
+function updateNow() {  //
+    var today = new Date();
+    var h = today.getHours();
+    var m = today.getMinutes();
+    var s = today.getSeconds();
+
+    //new Date('2020-03-25T12:00:00')
+
+    //new Date('2020-03-25T'+h+':'+m+':'+s)
+
+    h = checkTime(h);
+    m = checkTime(m);
+    s = checkTime(s);
+
+    time = h+':'+m+':'+s;
+
+    myChart.data.datasets[2].data[0].x = new Date('2020-03-25T'+time);
+    myChart.data.datasets[2].data[1].x = new Date('2020-03-25T'+time);
+    myChart.data.datasets[2].label = time;
+
+    myChart.update();
+
+
+    t = setTimeout(function () {
+        updateNow()
+    }, 1000);
 }
