@@ -10,7 +10,7 @@ var maxRange = 100;
 
 
 var dragOptions = {
-    animationDuration: 1000
+    animationDuration: 750
 };
 //TODO: mettre des limite au drag et au zoom(en X)
 var config = {
@@ -72,6 +72,7 @@ var config = {
             borderColor: 'rgba(0,0,0,0.2)',        //couleur trait et bord point
             lineTension: 0,
             fill: false,
+            dragData: false,
             data: [{
                 x: new Date('2020-03-25T12:00:00'),     //Valeur dynamiques depuis le c++ -> ok
                 y: 0
@@ -286,14 +287,8 @@ $(document).ready(function(){
     $("#lightLevelRange").mouseup(function () {
         console.log(this.value);
         console.log("lightLevel:" + this.value);
-        ws.send("lightLevel:" + this.value)
-    });
-
-    $("#lightLevelRange").on("touchend", function () {
-        console.log(this.value);
-        console.log("lightLevel:" + this.value);
-        ws.send("lightLevel:" + this.value)
         $("#rangeLab").text("Light level: "+this.value + "%");
+        ws.send("lightLevel:" + this.value)
     });
 
     /*setInterval(function getData(){

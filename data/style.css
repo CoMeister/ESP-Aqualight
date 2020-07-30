@@ -70,10 +70,10 @@ html{
 	background-color: rgba(255, 255, 255, 0);
 }
 
-.slider-wrapper input {
-	width: 150px;
-	height: 20px;
-	margin: 0;
-	transform-origin: 75px 75px;
-	transform: rotate(-90deg);
-  }
+.range{
+	-webkit-transform:rotate(180deg);
+     -moz-transform:rotate(180deg);
+     -o-transform:rotate(180deg);
+     -ms-transform:rotate(180deg);
+     transform:rotate(180deg); 
+}

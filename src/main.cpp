@@ -1,10 +1,13 @@
 /**
  * Manage summer/winter hour[OK?]
+ * Problem with writting task or reading task from file[TODO/0]
+ * 
+ * moving to LittleFS [TOD/1]
  * 
  * Possibility to change the number of point on chart[TODO/2]
  * Possibility to change network parameter.[TODO/2]
  * 
- * Show a cursor on the chart[TODO/3]
+ * Show a time cursor on the chart[OK]
  * 
  * Rewrite and optimize code[TODO/4]
  * 
