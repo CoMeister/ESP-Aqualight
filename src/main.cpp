@@ -1,5 +1,6 @@
 /**
  * Manage summer/winter hour[OK?]
+ * TODO connection problem (watch file write and dataStrTab)
  * Problem with writting task or reading task from file[TODO/0]
  * 
  * moving to LittleFS [TOD/1]
@@ -37,7 +38,7 @@
 #include <ESPAsyncWebServer.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncUDP.h>
-#include <FS.h>
+#include <LittleFS.h>
 #include <ArduinoJson.h>
 
 const int lights[] = {4, 12}; //pin
@@ -61,7 +62,7 @@ static IPAddress dns(192, 168, 1, 1);
 static IPAddress gateway(192, 168, 1, 1);
 static IPAddress subnet(255, 255, 255, 0);
 
-String dataStrTab[3]; //buffer ws
+String dataStrTab[3]; //"datas" file buffer
 bool co = false;
 
 unsigned int localPort = 123;
@@ -85,7 +86,6 @@ StaticJsonDocument<450> staticJson;
 int getHinSec(int hour, int minute, int second){
   return hour*3600 + minute*60 + second;
 }
-
 int getDay(long epochTime){
   return (((epochTime  / 86400L) + 4 ) % 7); //0 is Sunday
 }
@@ -142,7 +142,6 @@ void sendNTPpacket() {
   udp.write(packetBuffer, NTP_PACKET_SIZE);
 }
 
-
 void power(int currentSecond, int ledID){//int powerTimes[nbrChartPoint0/*Number of hour key point*/][2/*ledID*/][2/*h in sec; percent of light*/];
   volatile int ledIntensity;
   volatile int point0[2];   //point petite valeur le plus proche point0[0] = hinSec, point0[1] = percent of light
@@ -185,23 +184,23 @@ void power(int currentSecond, int ledID){//int powerTimes[nbrChartPoint0/*Number
   Serial.print(ledID);
   Serial.println(" ---");
 
-  Serial.print("Current second = ");
+  /*Serial.print("Current second = ");
   Serial.println(currentSecond);
 
   Serial.print("Point0 = {");
   Serial.print(point0[0]);
   Serial.print(",");
   Serial.print(point0[1]);
-  Serial.println("}");
+  Serial.println("}");*/
 
   Serial.print("Led intensity = ");
   Serial.println(ledIntensity);
 
-  Serial.print("Point1 = {");
+  /*Serial.print("Point1 = {");
   Serial.print(point1[0]);
   Serial.print(",");
   Serial.print(point1[1]);
-  Serial.println("}");
+  Serial.println("}");*/
 }
 
 void connectNTP(){
@@ -305,10 +304,9 @@ void netStart(String ssid, String pass, IPAddress ip){
       }
   }
   Serial.print("\n");
+  Serial.println(WiFi.status());
 
   if(WiFi.status() == WL_CONNECTED){
-    Serial.println(WiFi.status());
-
     Serial.print("Adresse IP: ");
     Serial.println(WiFi.localIP());
     NBNS.begin("ESP Aqualight");
@@ -324,22 +322,37 @@ void netStart(String ssid, String pass, IPAddress ip){
   }
 }
 
-void writeDatsIntoFile(){
-  File datasDFile = SPIFFS.open("/datas.d", "w");
+void writeDatasIntoFile(){
+  File datasDFile = LittleFS.open("/datas.d", "w");
+  /*int lineIndexStart[3] = {0, -1, -1};
+  int lineIndexEnd[3] = {-1, -1, -1};
+  int index = 0;
+  while(datasDFile.available()){
+    if((char)datasDFile.read == '\n'){
+      lineIndexStart[index] = datasDFile.position() +1;
+      lineIndexEnd[index] = datasDFile.position();
+      index++;
+    }
+  }*/
+
 
     Serial.println("/datas.d is writting:");
 
     for(int i = 0; i < 3; i++){
       Serial.println(dataStrTab[i]);
-      datasDFile.println(dataStrTab[i]+'\0');
-      dataStrTab[i] = "";
+      //if(!dataStrTab[i].equals("")){
+        datasDFile.println(dataStrTab[i]+'\0');
+      //}else{
+        //Serial.println(datasDFile.position());    //TODO TODO
+      //}
+      //dataStrTab[i] = "";
     }
     datasDFile.close();
 
 
-    File datas = SPIFFS.open("/datas.d", "r");
+    File datas = LittleFS.open("/datas.d", "r");
     Serial.println("/datas.d content-------:");
-    String fileContent;
+    //String fileContent;
     //String data[3];
     //int fileIndex0 = -1;
     //int fileIndex1 = 0;
@@ -379,10 +392,10 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
       }
       dataStr = dataStr.substring(0, indexChar+1);
 
-      dataStrTab[0] = dataStr;
-      openJson(dataStrTab[0].substring(1), dataStrTab[0].substring(0,1).toInt());
+      dataStrTab[1] = dataStr;
+      openJson(dataStrTab[1].substring(1), dataStrTab[1].substring(0,1).toInt());
 
-      writeDatsIntoFile();
+      writeDatasIntoFile();
 
     }else if(dataStr.substring(0,1).equals("1")){//----------------------------------------------------change light 1 configuration
       int indexChar = 0;
@@ -394,29 +407,22 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
 
 
       dataStr = dataStr.substring(0, indexChar+1);
-      dataStrTab[1] = dataStr;
-      openJson(dataStrTab[1].substring(1), dataStrTab[1].substring(0,1).toInt());
+      dataStrTab[2] = dataStr;
+      openJson(dataStrTab[2].substring(1), dataStrTab[2].substring(0,1).toInt());
 
-      writeDatsIntoFile();
+      writeDatasIntoFile();
 
     }else if(dataStr.substring(0,4).equals("true")){//------------------------------------toggle forced light
-      Serial.println("true true true true true true true true  ---->> " + dataStr);
+      Serial.println("true  ---->> " + dataStr);
       forceLightLevel = true;
     }else if(dataStr.substring(0,5).equals("false")){
-      Serial.println("false false false false false false false false ---->> " + dataStr);
+      Serial.println("false ---->> " + dataStr);
       forceLightLevel = false;
     }else if(dataStr.substring(0,dataStr.indexOf(':')).equals("lightLevel")){ //TODO: ne fonctionne pas
       Serial.println("lightLevel ---->> " + dataStr);
       lightLevel = dataStr.substring(11,14).toInt();
-      /*int n[3] = {0,0,0};
-      for(int i = 11; i < 14; i++){
-        if(dataStr.substring(i; i+1) != null && isDigit(dataStr.substring(i; i+1))){
-          n[i-11] = dataStr.substring(i; i+1).toInt();
-        }
-      }
-      lightLevel = */
       Serial.println(lightLevel);
-    }else{//-------------------------------------------------------------------------------------------Network configuration
+    }else if(!dataStr.equals("undefined")){//-------------------------------------------------------------------------------------------Network configuration
       int indexChar = 0;
       for(unsigned int i = 0; i < dataStr.length(); i++){
         if(isDigit(dataStr.charAt(i))){
@@ -425,25 +431,26 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
       }
       dataStr = dataStr.substring(0, indexChar+1);
 
-      dataStrTab[2] = dataStr;  //ssid:pass:ip
+      dataStrTab[0] = dataStr;  //ssid:pass:ip
       String netConf[3]; //{ssid,pass,ip}
 
       int index[2] ={-1,0};
       int j = 0;
-      for (unsigned int i = 0; i < dataStrTab[2].length(); i++) {
-        if (dataStrTab[2].substring(i, i+1) == ":") {
+      for (unsigned int i = 0; i < dataStrTab[0].length(); i++) {
+        if (dataStrTab[0].substring(i, i+1) == ":") {
           if(index[1] == 0){
             index[1] = i;
           }else{
             index[0] = index[1];
             index[1] = i;
           }
-          netConf[j] = dataStrTab[2].substring(index[0]+1,index[1]);
+          netConf[j] = dataStrTab[0].substring(index[0]+1,index[1]);
           Serial.println("netConf[" + String(j) + "] = " + String(netConf[j]));
           j++;
         }
       }
-      netConf[j] = dataStrTab[2].substring(index[1]+1);
+      writeDatasIntoFile();
+      netConf[j] = dataStrTab[0].substring(index[1]+1);
 
       int ip[4] = {0,0,0,0};
 
@@ -471,10 +478,9 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
       ssid = netConf[0];
       password = netConf[1];
       staticIP = IPAddress(ip[0],ip[1],ip[2],ip[3]);
-      delay(200);
+      delay(50);
 
       co=true;
-      writeDatsIntoFile();
     }
   }
 }
@@ -488,7 +494,7 @@ void loadDatasFromFile(String fileName0){   //gérer si datas.d est incomplet
   }
 
 
-  File datas = SPIFFS.open(fileName, "r");
+  File datas = LittleFS.open(fileName, "r");
   String fileContent = "";
 
   while(datas.available()){
@@ -498,7 +504,7 @@ void loadDatasFromFile(String fileName0){   //gérer si datas.d est incomplet
     }
   }
   datas.close();
-  Serial.println("fileContent : " + fileContent);
+  Serial.println("fileContent : \n" + fileContent);
 
   //String lines[3];
   int index[2] = {-1, 0};
@@ -507,7 +513,6 @@ void loadDatasFromFile(String fileName0){   //gérer si datas.d est incomplet
   for(unsigned int i = 0; i < fileContent.length(); i++){
     //Serial.println("pos = " + String(i));
     if(fileContent.substring(i, i+1).equals("\n")){
-      //Serial.println("char = retour de chariot");
       if(index[1] != 0){
         index[0] = index[1];
       }
@@ -523,19 +528,19 @@ void loadDatasFromFile(String fileName0){   //gérer si datas.d est incomplet
   Serial.println("dataStrTab[3] : ");
   for(int i = 0; i < 3; i++){
     //Serial.println("lines" + lines[i]);
-    Serial.println("dataStrTab : " + dataStrTab[i]);
+    Serial.println("dataStrTab " + String(i) + " : " + dataStrTab[i]);
   }
 
 
 
-  for(int i = 0; i < 2; i++){
+  for(int i = 1; i < 3; i++){
     if(dataStrTab[i] != ""){
       openJson(dataStrTab[i].substring(1), dataStrTab[i].substring(0,1).toInt());
     }
   }
 
 
-  if(dataStrTab[2] != ""){
+  if(dataStrTab[0] != ""){
     String netData[3];  /////////////////////////////////////////////////////////////
     int ipInt[4];
 
@@ -543,17 +548,17 @@ void loadDatasFromFile(String fileName0){   //gérer si datas.d est incomplet
     index[1] = 0;
     j = 0;
 
-    for(unsigned int i = 0; i < dataStrTab[2].length(); i++){
-      if(dataStrTab[2].substring(i, i+1).equals(":")){
+    for(unsigned int i = 0; i < dataStrTab[0].length(); i++){
+      if(dataStrTab[0].substring(i, i+1).equals(":")){
         if(index[1] != 0){
           index[0] = index[1];
         }
         index[1] = i;
-        netData[j] = dataStrTab[2].substring(index[0]+1, index[1]);
+        netData[j] = dataStrTab[0].substring(index[0]+1, index[1]);
         j++;
       }
     }
-    netData[j] = dataStrTab[2].substring(index[1]+1);
+    netData[j] = dataStrTab[0].substring(index[1]+1);
 
 
 
@@ -576,10 +581,10 @@ void loadDatasFromFile(String fileName0){   //gérer si datas.d est incomplet
 
 
 
-    Serial.println("netData[3]:");
+    /*Serial.println("netData[3]:");
     for(int i = 0; i < 3; i++){
       Serial.println(netData[i]);
-    }
+    }*/
 
     Serial.println("ipInt[4]:");
     for(int i = 0; i < 4; i++){
@@ -623,13 +628,13 @@ void setup() {
     time+=14400;
   }
 
-  if(!SPIFFS.begin())
+  if(!LittleFS.begin())
   {
-    //Serial.println("Erreur SPIFFS...");
+    //Serial.println("Erreur LittleFS...");
     return;
   }
 
-  //------------------SPIFFS-----------------//dataStrTab
+  //------------------LittleFS-----------------//dataStrTab
   //initialisation from "datas" file
   //update dataStrTab from "datas.d"
     //dataStrTabUpdate();
@@ -650,7 +655,7 @@ void setup() {
   int sizeOfFilesName = *(&filesName + 1)/*Address after elements of the array*/ - filesName /*Addr of the first element from array*/;  //REF
 
   for(int i = 0; i < sizeOfFilesName; i++){
-    file = SPIFFS.open(filesName[i], "r");
+    file = LittleFS.open(filesName[i], "r");
     if (!file) {
       Serial.print("Failed to open file \"");
       Serial.print(filesName[i]);
@@ -672,27 +677,27 @@ void setup() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
   {
     if(isAP){
-      request->send(SPIFFS, "/wifi_config.html", "text/html");
+      request->send(LittleFS, "/wifi_config.html", "text/html");
     }else{
       //Serial.println("send /index.html");
-      request->send(SPIFFS, "/index.html", "text/html");
-      //request->send(SPIFFS, "text/html", "/index.html");
+      request->send(LittleFS, "/index.html", "text/html");
+      //request->send(LittleFS, "text/html", "/index.html");
     }
   });
 
   server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(SPIFFS, "/style.css", "text/css");
+    request->send(LittleFS, "/style.css", "text/css");
   });
 
   server.on("/script.js", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(SPIFFS, "/script.js", "text/javascript");
+    request->send(LittleFS, "/script.js", "text/javascript");
   });
 
   server.on("/wifi_config_script.js", HTTP_GET, [](AsyncWebServerRequest *request)
   {
-    request->send(SPIFFS, "/wifi_config_script.js", "text/javascript");
+    request->send(LittleFS, "/wifi_config_script.js", "text/javascript");
   });
 
   /*server.on("/send", HTTP_POST, [](AsyncWebServerRequest *request)  //TODO: remplacer par du websocket

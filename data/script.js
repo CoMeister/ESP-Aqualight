@@ -275,7 +275,7 @@ $(document).ready(function(){
         console.log("0" +jsonLed0);
         console.log("1" +jsonLed1);
         ws.send("0" +jsonLed0);
-        ws.send("1" +jsonLed0);
+        ws.send("1" +jsonLed1);
         ws.send(JSON.stringify(this.checked));
     })
 
