@@ -1,10 +1,5 @@
 /**
  * Manage summer/winter hour[OK?]
- * TODO connection problem (watch file write and dataStrTab)
- * Problem with writting task or reading task from file[TODO/0]
- * 
- * moving to LittleFS [TOD/1]
- * 
  * Possibility to change the number of point on chart[TODO/2]
  * Possibility to change network parameter.[TODO/2]
  * 
@@ -147,6 +142,11 @@ void power(int currentSecond, int ledID){//int powerTimes[nbrChartPoint0/*Number
   volatile int point0[2];   //point petite valeur le plus proche point0[0] = hinSec, point0[1] = percent of light
   volatile int point1[2];   //point grande valeur le plus proche
 
+  /*p1-p0=ecar
+  currentSecond-p0 = posCurrentDansEcar
+  */
+  
+
   volatile int littleHInSec = -1;
   volatile int hugeHInSec = 86401; //24H in second + 1 sec
 
@@ -154,7 +154,7 @@ void power(int currentSecond, int ledID){//int powerTimes[nbrChartPoint0/*Number
   for(int i = 0; i < nbrChartPoint; i++){
     if(powerTimes[i][ledID][0] > -1){
 
-      if(powerTimes[i][ledID][0] < currentSecond && powerTimes[i][ledID][0] >= littleHInSec){ //test all hour key of [ledID] h in sec | trouver le petit point
+      if(powerTimes[i][ledID][0] < currentSecond && powerTimes[i][ledID][0] >= littleHInSec){ //test all hour key of [ledID] h in sec | find low point
         point0[0] = powerTimes[i][ledID][0];
         point0[1] = powerTimes[i][ledID][1];
         littleHInSec = powerTimes[i][ledID][0];
@@ -164,7 +164,7 @@ void power(int currentSecond, int ledID){//int powerTimes[nbrChartPoint0/*Number
         point1[0] = powerTimes[0][ledID][0];
         point1[1] = powerTimes[0][ledID][1];
         hugeHInSec = powerTimes[0][ledID][0];
-      }else if(powerTimes[i][ledID][0] > currentSecond && powerTimes[i][ledID][0] <= hugeHInSec){ //test all hour key of [ledID] h in sec | trouver le grand point
+      }else if(powerTimes[i][ledID][0] > currentSecond && powerTimes[i][ledID][0] <= hugeHInSec){ //test all hour key of [ledID] h in sec | find high point
         point1[0] = powerTimes[i][ledID][0];
         point1[1] = powerTimes[i][ledID][1];
         hugeHInSec = powerTimes[i][ledID][0];
@@ -173,7 +173,7 @@ void power(int currentSecond, int ledID){//int powerTimes[nbrChartPoint0/*Number
     }
   }
 
-  ledIntensity = point1[1]*(currentSecond-point0[0])/(point1[0]-point0[0]);
+  ledIntensity = point0[1] + (((currentSecond-point0[0])*(point1[1]-point0[1]))/(point1[0]-point0[0]));
 
   if(ledIntensity < 0){
     ledIntensity = 0;
@@ -184,23 +184,25 @@ void power(int currentSecond, int ledID){//int powerTimes[nbrChartPoint0/*Number
   Serial.print(ledID);
   Serial.println(" ---");
 
-  /*Serial.print("Current second = ");
+  Serial.print("Current second = ");
   Serial.println(currentSecond);
 
   Serial.print("Point0 = {");
   Serial.print(point0[0]);
   Serial.print(",");
   Serial.print(point0[1]);
-  Serial.println("}");*/
+  Serial.println("}");
 
   Serial.print("Led intensity = ");
   Serial.println(ledIntensity);
+  Serial.print("Intermédiaire = ");
+  Serial.println((((point1[0]-currentSecond)*(point1[1]-point0[1]))/(point1[0]-point0[0])));
 
-  /*Serial.print("Point1 = {");
+  Serial.print("Point1 = {");
   Serial.print(point1[0]);
   Serial.print(",");
   Serial.print(point1[1]);
-  Serial.println("}");*/
+  Serial.println("}");
 }
 
 void connectNTP(){
