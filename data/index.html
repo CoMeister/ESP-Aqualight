@@ -6,6 +6,8 @@
     <title>Aqualight settings</title>
     <meta name="viewport" content="width=device-width, initial-scale=1"charset="UTF-8" />
     <link rel="stylesheet" type="text/css" href="style.css">
+    <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kognise/water.css@latest/dist/dark.min.css">-->
+    <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kognise/water.css@latest/dist/light.min.css">-->
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
@@ -15,20 +17,20 @@
 </head>
 
 <body>
-    <div id ="tools"><button id="help">help !</button></div>
     <div id="content">
         <canvas id="lightGraph"></canvas>
-        <button id="send">Send data</button><br>
-        <label for="numberOfPoints">Number of points: </label>
-        <input type="number" value="6" id="numberOfPoints">
-        <br>
-        <label for="forceLight">Force light?</label>
-        <input type="checkbox" id="forceLight" name="forceLight" value="forceLight">
-        <br>
-        <label for="lightLevelRange" id="rangeLab" name="rangeLab">Light level: </label>
-        <br>
-        <input type="range" class="range" id="lightLevelRange" min="0" max="100" value="100" step="1" class ="vertical">
-        
+        <div id = "toolbar">
+            <button id="help">help !</button>
+            <label for="numberOfPoints">Number of points: </label>
+            <input type="number" value="6" id="numberOfPoints">
+            <label for="forceLight">Force light?</label>
+            <input type="checkbox" id="forceLight" name="forceLight" value="forceLight">
+            <label for="lightLevelRange" id="rangeLab" name="rangeLab">Light level: </label>
+            <input type="range" class="range" id="lightLevelRange" min="0" max="100" value="100" step="1" class ="vertical">
+            <button id="deconnect">Deconnect</button>
+            <button id="reconnect">Reconnect</button>
+            <button id="send">Apply</button>
+        </div>
     </div>
 </body>
 

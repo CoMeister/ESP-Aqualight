@@ -18,8 +18,8 @@ var config = {
     data: {
         datasets: [{
             label: 'Light 0',
-            backgroundColor: 'rgba(0, 59, 142, 0.7)',    //couleur des points
-            borderColor: 'rgba(0, 59, 142, 0.7)',        //couleur trait et bord point
+            backgroundColor: 'rgba(17, 138, 178, 0.9)',    //round color blue
+            borderColor: 'rgba(17, 138, 178, 0.9)',        //Line and round border color
             lineTension: 0,
             fill: false,
             data: [{
@@ -43,8 +43,8 @@ var config = {
             }],
         }, {
             label: 'Light 1',
-            backgroundColor: 'rgba(28, 142, 0, 0.7)',    //couleur des points
-            borderColor: 'rgba(28, 142, 0, 0.7)',        //couleur trait et bord point
+            backgroundColor: 'rgba(255, 209, 102, 0.9)',    //round color yellow
+            borderColor: 'rgba(255, 209, 102, 0.9)',        //Line and round border color
             lineTension: 0,
             fill: false,
             data: [{
@@ -68,8 +68,8 @@ var config = {
             }]
         },{
             label: '00:00:00',
-            backgroundColor: 'rgba(130, 59, 100, 0)',    //couleur des points
-            borderColor: 'rgba(0,0,0,0.2)',        //couleur trait et bord point
+            backgroundColor: 'rgba(239, 71, 111, 0)',    //round color pink
+            borderColor: 'rgba(239, 71, 111,0.2)',        //Line and round border color
             lineTension: 0,
             fill: false,
             dragData: false,
@@ -149,14 +149,14 @@ var config = {
                 display: true,
                 scaleLabel: {
                     display: true,
-                    labelString: 'Date'
+                    labelString: 'Date',
                 },
                 ticks: {
                     min: new Date('2020-03-25T00:00:00'),
                     max: new Date('2020-03-25T23:59:59'),
                     major: {
                         fontStyle: 'bold',
-                        fontColor: '#FF0000'
+                        fontColor: '#0000',
                     }
                 }
             }],
@@ -217,6 +217,8 @@ var config = {
         }
     }
 };
+
+Chart.defaults.global.defaultFontColor = "#073B4C";
 
 function stopZoom() {
     //console.log("Stop zoom");
@@ -288,6 +290,7 @@ $(document).ready(function(){
         console.log(this.value);
         console.log("lightLevel:" + this.value);
         $("#rangeLab").text("Light level: "+this.value + "%");
+        
         ws.send("lightLevel:" + this.value)
     });
 
@@ -303,7 +306,10 @@ $(document).ready(function(){
             }
         };
     }, 2000);*/
-    $("#rangeLab").text("Light level: "+ $("#lightLevelRange").value + "%");
+
+    
+    console.log($("#lightLevelRange"));
+    $("#rangeLab").text("Light level: "+$("#lightLevelRange")[0].value + "%");
     updateNow();
 
 });

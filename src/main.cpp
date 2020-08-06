@@ -45,6 +45,7 @@ String password;
 
 bool isAP = true;
 bool connect = true;
+int nWlan;
 
 bool forceLightLevel = false;
 int lightLevel = 0;
@@ -274,6 +275,12 @@ void netStart(){
   Serial.println(password);
   Serial.print("IP: ");
   Serial.println(staticIP);
+
+  WiFi.mode(WIFI_STA);        //get available WLAN
+  WiFi.disconnect();
+  delay(100);
+  nWlan = WiFi.scanNetworks();
+
   WiFi.mode(WIFI_AP_STA);
 
   WiFi.softAPConfig(gateway, gateway, subnet);
@@ -370,9 +377,22 @@ void writeDatasIntoFile(){
 
 void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t * data, size_t len){
   if(type == WS_EVT_CONNECT){ //On connection server send data as Json to the client
+  if(isAP){
+    //client->text("ssid{wewrer, ufughufhguf, Braillard, sdfsdfds}");
+    String ssidList[nWlan];
+    String ssidLStr = "";
+    //int sizeOfssidList = *(&ssidList + 1)/*Address after elements of the array*/ - ssidList /*Addr of the first element from array*/;
+    for(int i = 0; i < nWlan; i++){
+      ssidList[i] = WiFi.SSID(i);
+      ssidLStr +=  WiFi.SSID(i) + ";";
+    }
+    Serial.println(ssidLStr);
+    client->text(ssidLStr);
+  }else{
     client->text(getJson(0));
     client->text(getJson(1));
     client->text("lightLevel:" + String(lightLevel)  + ",forceLight:" + String(forceLightLevel));
+  }
   }else if(type == WS_EVT_DATA){//---------------------------------------------------------------------Received data format
     //String dataStr = String((char *)&data[0]);  //add random char at end
     char dataBufer[len];             
@@ -636,18 +656,6 @@ void setup() {
     return;
   }
 
-  //------------------LittleFS-----------------//dataStrTab
-  //initialisation from "datas" file
-  //update dataStrTab from "datas.d"
-    //dataStrTabUpdate();
-
-    /*for(int i = 0; i < 2; i++){
-      openJson(dataStrTab[i].substring(1),dataStrTab[i].substring(0,1).toInt());
-    }*/
-
-  //initialisation from "datas" file
-  //updateLocalVariable("/datas.d");
-
   loadDatasFromFile("/datas.d");
 
   String filesName[] = {"/datas.d", "/index.html", "/style.css", "/script.js",  "/wifi_config_script.js", "/wifi_config.html"};
@@ -701,18 +709,6 @@ void setup() {
   {
     request->send(LittleFS, "/wifi_config_script.js", "text/javascript");
   });
-
-  /*server.on("/send", HTTP_POST, [](AsyncWebServerRequest *request)  //TODO: remplacer par du websocket
-  {
-    String light0 = request->getParam("light0", true)->value();
-    String light1 = request->getParam("light1", true)->value();
-
-    openJson(light0, 0);  //mets à jour le tableau de donnés en local pour les lights.
-    openJson(light1, 1);
-    //application/json
-
-    request->send(204); //valider la requète (pour le srv)
-  });*/
 
   server.begin();
 }

@@ -10,15 +10,29 @@
 </head>
 
 <body>
-    <label for="ssid">SSID: </label>
-    <input type="text" id="ssid"></input></br>
-
-    <label for="password">Password: </label>
-    <input type="password" id="password"></input></br>
-
-    <label for="ip">IP: </label>
-    <input type="text" id="ip"></input></br>
-
-    <button onclick="send()">Submit</button>
+    <div id ="wifiConfig">
+        <div>
+            <label for="ssid">SSID:</label>
+            <select name="ssid" id="ssid">
+                <option value = "sdasd">exemple0</option>
+                <option value = "sdasd">exemple1</option>
+                <option value = "sdasd">exemple2</option>
+                <option value = "sdasd">exemple3</option>
+            </select>
+        </div>
+    
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" name="password" id="password"></input>
+        </div>
+    
+        <div>
+            <label for="ip">IP:</label>
+            <input type="text" name="ip" id="ip"></input>
+        </div>
+    
+        <button onclick="send()" id ="sub">Submit</button>
+    </div>
+    
 </body>
 </html>
