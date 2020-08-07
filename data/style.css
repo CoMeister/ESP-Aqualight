@@ -29,6 +29,19 @@ html{
 	height:500px;
 }
 
+#toolbar{
+	display:flex;
+	padding:0px 5px 0px 5px;
+}
+
+#toolForm{
+	margin: auto;
+}
+
+.tools{
+	margin-left:10px;
+}
+
 input.vertical {
 	-webkit-appearance: slider-vertical;
 	writing-mode: bt-lr;
@@ -40,7 +53,7 @@ input{
 }
 
 button {
-	background-color: #073B4C; /* Green */
+	background-color: #073B4C;
 	border: none;
 	color: white;
 	padding: 15px 32px;
@@ -52,42 +65,46 @@ button {
   }
 
 button:hover{
-	background-color: rgba(7, 59, 76, 0.7);
+	opacity:0.8;
 }
 
 button:active{
-	background-color: rgba(7, 59, 76, 1);
-	font-size: 14px;
+	opacity:1;
 }
 
 #send{
-	margin-right: 0px;
+	margin-right: 20px;
 	margin-left: auto;
-	display: block;
+	display: inline;
+	background-color: rgba(17, 138, 178, 1);
 	/*margin-top: -24px;*/
 }
 
 #sub{
-	background-color: rgb(239, 71, 111);
+	background-color: rgba(17, 138, 178, 1);
 	margin-top:10%;
 	width:100%;
 }
 
 #help{
-	margin-right:20%;
-	display:block;
+	margin-left:0px;
+	display:inline;
 }
 
 label{
 	display:inline-block;
-	width:90px;
+}
+
+#rangelab{
+	width:110px;
 }
 
 div{
 	margin-top:10px;
 }
 
-#wifiConfig{
+.wifiConfig{
+	background-color: #FFF;
 	color: #073B4C;
 	margin: 0;
 	position: absolute;
@@ -100,6 +117,10 @@ div{
 	border-width: 2px;
 	padding: 3% 3% 2% 3%;
 	border-radius: 0px;
+}
+
+#changeWConf{
+	display:none;
 }
 
 input[type=text], input[type=password] {

@@ -1,7 +1,9 @@
 /**
  * Manage summer/winter hour[OK?]
+ * Reset factory default [TODO]
+ * 
  * Possibility to change the number of point on chart[TODO/2]
- * Possibility to change network parameter.[TODO/2]
+ * Possibility to change network parameter.[TODO/2] in progress
  * 
  * Show a time cursor on the chart[OK]
  * 
@@ -9,7 +11,8 @@
  * 
  * Do a 2.0 version when we use C class[TODO/5]
  * 
- * Find a solution to have terminale on the Aqualight box (LCD, TFT, OLED, 7 segment)[TODO/Maybe]
+ * Find a solution to have terminale on the Aqualight box (LCD, TFT, OLED, 7 segment)[TODO/Maybe] 1 btn to factory default, 
+ * 1 terminal to show error msg
  * 
  * Corriger gestion entre dernier et premier point [OK]
  * Utiliser le webSocket pour toutes communications [OK]
@@ -22,7 +25,7 @@
  * Web button to change state (Chart light level, ON, OFF).[OK]
  * Use ip from datas.d to web page for webSocket IP(Utilisation of "location.host" into JS code)[OK]
  * 
- * With this project we can manage led ramp of aquarium. We can use use custom or generic ramp led. Possibility to tune value of light on a web page.
+ * With this project we can manage led ramp of aquarium. We can use custom or generic ramp led. Possibility to tune value of light on a web page.
  * On first burn a wifi access point is created and you can connect on it. When you are connected you have to enter the SSID, PASWD of your wifi network and a static ip.
  * Finally you can access st your Aqualight box to manage led level by second.
  */
@@ -114,6 +117,8 @@ unsigned long getEpocheTime(uint8_t * data){
   return epoch;
 }
 
+void(* resetFunc) (void) = 0;
+
 void sendNTPpacket() {
   Serial.println("sending NTP packet...");
   // set all bytes in the buffer to 0
@@ -174,11 +179,14 @@ void power(int currentSecond, int ledID){//int powerTimes[nbrChartPoint0/*Number
     }
   }
 
-  ledIntensity = point0[1] + (((currentSecond-point0[0])*(point1[1]-point0[1]))/(point1[0]-point0[0]));
+  ledIntensity = point0[1] + (((currentSecond-point0[0])*(point1[1]-point0[1]))/(point1[0]-point0[0])); //max 100
 
   if(ledIntensity < 0){
     ledIntensity = 0;
   }
+
+  ledIntensity = map(ledIntensity, 0, 100, 0, 255);
+
   analogWrite(lights[ledID], ledIntensity);
 
   Serial.print("--- Light");
@@ -332,17 +340,8 @@ void netStart(String ssid, String pass, IPAddress ip){
 }
 
 void writeDatasIntoFile(){
+
   File datasDFile = LittleFS.open("/datas.d", "w");
-  /*int lineIndexStart[3] = {0, -1, -1};
-  int lineIndexEnd[3] = {-1, -1, -1};
-  int index = 0;
-  while(datasDFile.available()){
-    if((char)datasDFile.read == '\n'){
-      lineIndexStart[index] = datasDFile.position() +1;
-      lineIndexEnd[index] = datasDFile.position();
-      index++;
-    }
-  }*/
 
 
     Serial.println("/datas.d is writting:");
@@ -361,11 +360,6 @@ void writeDatasIntoFile(){
 
     File datas = LittleFS.open("/datas.d", "r");
     Serial.println("/datas.d content-------:");
-    //String fileContent;
-    //String data[3];
-    //int fileIndex0 = -1;
-    //int fileIndex1 = 0;
-    //int j = 0;
 
     while(datas.available()){
       Serial.print((char)datas.read());
@@ -373,6 +367,10 @@ void writeDatasIntoFile(){
     Serial.println("-------");
 
     datas.close();
+}
+
+void resetFile(){
+  LittleFS.remove("/datas.d");
 }
 
 void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t * data, size_t len){
@@ -426,8 +424,6 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
           indexChar = i;
         }
       }
-
-
       dataStr = dataStr.substring(0, indexChar+1);
       dataStrTab[2] = dataStr;
       openJson(dataStrTab[2].substring(1), dataStrTab[2].substring(0,1).toInt());
@@ -440,10 +436,14 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
     }else if(dataStr.substring(0,5).equals("false")){
       Serial.println("false ---->> " + dataStr);
       forceLightLevel = false;
-    }else if(dataStr.substring(0,dataStr.indexOf(':')).equals("lightLevel")){ //TODO: ne fonctionne pas
+    }else if(dataStr.substring(0,dataStr.indexOf(':')).equals("lightLevel")){
       Serial.println("lightLevel ---->> " + dataStr);
       lightLevel = dataStr.substring(11,14).toInt();
       Serial.println(lightLevel);
+    }else if(dataStr.equals("reset")){//--------Reset to factory default
+      resetFile();
+      delay(300);
+      resetFunc();
     }else if(!dataStr.equals("undefined")){//-------------------------------------------------------------------------------------------Network configuration
       int indexChar = 0;
       for(unsigned int i = 0; i < dataStr.length(); i++){

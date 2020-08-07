@@ -20,17 +20,39 @@
     <div id="content">
         <canvas id="lightGraph"></canvas>
         <div id = "toolbar">
-            <button id="help">help !</button>
-            <label for="numberOfPoints">Number of points: </label>
-            <input type="number" value="6" id="numberOfPoints">
-            <label for="forceLight">Force light?</label>
-            <input type="checkbox" id="forceLight" name="forceLight" value="forceLight">
-            <label for="lightLevelRange" id="rangeLab" name="rangeLab">Light level: </label>
-            <input type="range" class="range" id="lightLevelRange" min="0" max="100" value="100" step="1" class ="vertical">
-            <button id="deconnect">Deconnect</button>
-            <button id="reconnect">Reconnect</button>
-            <button id="send">Apply</button>
+            <button id="help" class="tools">help !</button>
+            <button id="deconnect" class="tools">Reset</button>
+            <button id="netConfig" class="tools">Net config</button>
+            <div id="toolForm" class="tools">
+                <label for="numberOfPoints">Number of points: </label>
+                <input type="number" value="6" id="numberOfPoints">
+                <label for="forceLight">Force light?</label>
+                <input type="checkbox" id="forceLight" name="forceLight" value="forceLight">
+                <label for="lightLevelRange" id="rangeLab" name="rangeLab">Light level: </label>
+                <input type="range" class="range" id="lightLevelRange" min="0" max="100" value="100" step="1" class ="vertical">
+            </div>
+            <button id="send" class="tools">Apply</button>
         </div>
+    </div>
+    <div class ="wifiConfig" id="changeWConf">
+        <div>
+            <label for="ssid">SSID:</label>
+            <select name="ssid" id="ssid"></select>
+        </div>
+    
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" name="password" id="password"></input>
+        </div>
+    
+        <div>
+            <label for="ip">IP:</label>
+            <input type="text" name="ip" id="ip"></input>
+        </div>
+        
+        <button id ="sub">Submit</button>
+            
+        
     </div>
 </body>
 

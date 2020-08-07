@@ -5,6 +5,7 @@ var myChart;
 var ws;
 var wsDatas = [];
 var ipServ = "0.0.0.0";
+var wconfIsOpen = false;
 
 var maxRange = 100;
 
@@ -292,6 +293,48 @@ $(document).ready(function(){
         $("#rangeLab").text("Light level: "+this.value + "%");
         
         ws.send("lightLevel:" + this.value)
+    });
+
+    $("#netConfig").click(function(){
+        if(wconfIsOpen){
+            $("#changeWConf").css("display", "none");
+            $("#netConfig").css("background-color", "#073B4C");
+            $("#netConfig").text("Net config");
+            wconfIsOpen=false;
+        }else{//if wconfIsOpen == false
+            $("#changeWConf").css("display", "block");
+            $("#netConfig").css("background-color", "rgb(239, 71, 111)");
+            $("#netConfig").css("width", "137px");
+            $("#netConfig").text("Cancel");
+            wconfIsOpen=true;
+        }
+        ws.send("ssidList");
+    });
+
+    $("#sub").click(function(){
+        $("#changeWConf").css("display", "none");
+        $("#netConfig").css("background-color", "#073B4C");
+        $("#netConfig").text("Net config");
+        wconfIsOpen=false;
+
+        document.getElementById("ssid").value;
+
+        var ssid = $( "#ssid option:selected" ).text()
+
+        var pass = $("#password").val();
+        var ip = $("#ip").val();
+
+        ws.send(ssid + ":" + pass + ":" + ip);
+
+        console.log("ssid:" + ssid);
+        console.log("pass:" + pass);
+        console.log("ip:" + ip);
+    });
+
+    $("#deconnect").click(function(){
+        console.log("deco");
+        ws.send("reset");
+        ws.close();
     });
 
     /*setInterval(function getData(){
