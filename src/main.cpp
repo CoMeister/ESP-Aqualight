@@ -185,6 +185,8 @@ void power(int currentSecond, int ledID){//int powerTimes[nbrChartPoint0/*Number
     ledIntensity = 0;
   }
 
+  int ledIntensityPercent = ledIntensity; //Used just to log.
+
   ledIntensity = map(ledIntensity, 0, 100, 0, 255);
 
   analogWrite(lights[ledID], ledIntensity);
@@ -203,6 +205,10 @@ void power(int currentSecond, int ledID){//int powerTimes[nbrChartPoint0/*Number
   Serial.println("}");
 
   Serial.print("Led intensity = ");
+  Serial.print(ledIntensityPercent);
+  Serial.println('%');
+
+  Serial.print("Real Led intensity = ");
   Serial.println(ledIntensity);
   Serial.print("Intermédiaire = ");
   Serial.println((((point1[0]-currentSecond)*(point1[1]-point0[1]))/(point1[0]-point0[0])));
@@ -371,6 +377,8 @@ void writeDatasIntoFile(){
 
 void resetFile(){
   LittleFS.remove("/datas.d");
+  File datasD = LittleFS.open("/datas.d", "w");
+  datasD.close();
 }
 
 void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t * data, size_t len){
@@ -444,6 +452,16 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
       resetFile();
       delay(300);
       resetFunc();
+    }else if(dataStr.equals("ssidList")){//--------Rewrite WLAn Settings
+      String ssidLStr = "";
+
+      //int sizeOfssidList = *(&ssidList + 1)/*Address after elements of the array*/ - ssidList /*Addr of the first element from array*/;
+      for(int i = 0; i < nWlan; i++){
+        ssidLStr +=  WiFi.SSID(i) + ";";
+        Serial.println(WiFi.SSID(i));
+      }
+      Serial.println(ssidLStr);
+      client->text(ssidLStr);
     }else if(!dataStr.equals("undefined")){//-------------------------------------------------------------------------------------------Network configuration
       int indexChar = 0;
       for(unsigned int i = 0; i < dataStr.length(); i++){
@@ -670,7 +688,8 @@ void setup() {
       Serial.print("Failed to open file \"");
       Serial.print(filesName[i]);
       Serial.println("\" to read it. :(");
-      return;
+      isAP = true;
+      break;
     }
     Serial.println(file.name());
     file.close();

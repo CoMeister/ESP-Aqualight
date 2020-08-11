@@ -258,9 +258,37 @@ $(document).ready(function(){
     ws = new WebSocket("ws://" + ipServ + "/ws");
     
     ws.addEventListener('message', function (event) {
-        //console.log('Message from server ', event.data);
+        console.log('Message from server=', event.data);
+        try{
+            receiveJson(event.data);
+        }catch(error){
+            var ssidList = event.data.split(';');
+            console.log("ssidList: " + ssidList);
+            var select = $("#ssid");
+            select.find('option').remove();
+
+            for(var i = 0; i < ssidList.length-1; i++){
+                var option = document.createElement("option");
+                option.text = ssidList[i];
+                select[0].add(option);
+            }
+        }
         //console.log('Receive JSON: ');
-        receiveJson(event.data);
+        /*if(event.data.charAt(0) == '0' || event.data.charAt(0) == '1'){
+            receiveJson(event.data);
+            console.log("led array");
+        }else{
+            var ssidList = event.data.split(';');
+            console.log("ssidList: " + ssidList);
+            var select = $("#ssid");
+            select.find('option').remove();
+
+            for(var i = 0; i < ssidList.length-1; i++){
+                var option = document.createElement("option");
+                option.text = ssidList[i];
+                select[0].add(option);
+            }
+        }*/
     });
 
     $("#lightGraph").dblclick(function(e){
@@ -306,9 +334,9 @@ $(document).ready(function(){
             $("#netConfig").css("background-color", "rgb(239, 71, 111)");
             $("#netConfig").css("width", "137px");
             $("#netConfig").text("Cancel");
+            ws.send("ssidList");
             wconfIsOpen=true;
         }
-        ws.send("ssidList");
     });
 
     $("#sub").click(function(){
@@ -337,19 +365,6 @@ $(document).ready(function(){
         ws.close();
     });
 
-    /*setInterval(function getData(){
-        var xhttp = new XMLHttpRequest();
-
-        xhttp.onreadystatechange = function()
-        {
-            if(this.readyState == 4 && this.status == 200)
-            {
-                console.log("xhttp");
-                console.log(this.responseText);
-            }
-        };
-    }, 2000);*/
-
     
     console.log($("#lightLevelRange"));
     $("#rangeLab").text("Light level: "+$("#lightLevelRange")[0].value + "%");
@@ -359,10 +374,15 @@ $(document).ready(function(){
 
 function receiveJson(wsData){
     if(wsData.substring(0, wsData.indexOf(":")) == "lightLevel"){
-        console.log(wsData);
+        //var isLightForcedChecked = parseInt(substring(wsData.length-1));
+        //console.log("isLightForcedChecked="+substring(wsData.length-1));
         var lightLevel= parseInt(wsData.substring(0, wsData.indexOf(",")).substring(wsData.indexOf(":")+1)); 
+        console.log("lightLevel="+lightLevel);
         $("#rangeLab").text("Light level: " + lightLevel + "%");
         $("#lightLevelRange").val(lightLevel);
+        var isLightForcedChecked = parseInt(wsData.substring(wsData.length-1));
+        console.log("isLightForcedChecked=" + isLightForcedChecked);
+        $("#forceLight")[0].checked = isLightForcedChecked;
     }else{
         var msg = JSON.parse(wsData);
     
