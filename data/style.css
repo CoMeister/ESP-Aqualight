@@ -138,6 +138,11 @@ input[type=text], input[type=password] {
 	display:none;
 }
 
+/*#refresh{
+	padding:3px 10px;
+	font-size: 20px;
+}*/
+
 option{
 	background-color: rgba(17, 138, 178, 1);
 	color: #FFF;

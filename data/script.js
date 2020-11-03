@@ -13,7 +13,7 @@ var maxRange = 100;
 var dragOptions = {
     animationDuration: 750
 };
-//TODO: mettre des limite au drag et au zoom(en X)
+
 var config = {
     type: 'line',
     data: {
@@ -315,13 +315,27 @@ $(document).ready(function(){
         ws.send($("#forceLight").prop('checked').toString());
     });
 
-    $("#lightLevelRange").mouseup(function () {
+
+    var now = 0;
+    $(document).on('input', '#lightLevelRange', function(){
+        console.log(this.value);
+        console.log("lightLevel:" + this.value);
+        
+        $("#rangeLab").text("Light level: "+this.value + "%");
+        if(($.now() - now) >= 250){
+            now = $.now();
+            ws.send("lightLevel:" + this.value);
+        }
+        
+    });
+
+    /*$("#lightLevelRange").mouseup(function () {   //Doesn't work on mobile :3
         console.log(this.value);
         console.log("lightLevel:" + this.value);
         $("#rangeLab").text("Light level: "+this.value + "%");
         
         ws.send("lightLevel:" + this.value)
-    });
+    });*/
 
     $("#netConfig").click(function(){
         if(wconfIsOpen){
@@ -338,6 +352,9 @@ $(document).ready(function(){
             wconfIsOpen=true;
         }
     });
+    /*$("#refresh").click(function(){
+        ws.send("ssidList");
+    });*/
 
     $("#sub").click(function(){
         $("#changeWConf").css("display", "none");
