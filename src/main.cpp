@@ -1,5 +1,5 @@
 /**
- * Manage summer/winter hour[OK?]
+ * Manage summer/winter hour[OK?] nop
  * Reset factory default [TODO]
  * 
  * Possibility to change the number of point on chart[TODO/2]
@@ -41,7 +41,7 @@
 
 const int lights[] = {4, 12}; //pin
 
-const int nbrChartPoint = 6;
+const int nbrChartPoint = 6;  
 
 String ssid;
 String password;
@@ -72,7 +72,7 @@ byte packetBuffer[NTP_PACKET_SIZE];
 AsyncUDP udp;
 unsigned long epocheTime = 0;
 
-int powerTimes[nbrChartPoint][2 /*ledID*/][2 /*h in sec; percent of light*/];
+int powerTimes[nbrChartPoint][2 /*ledID*/][2 /*h in sec; percent of light*/]; // TODO make this dynamic like a List object
 
 unsigned int currentTime = 0;
 unsigned long currentTime0 = -300000; //sendNTPpacket() at start
@@ -153,27 +153,35 @@ void sendNTPpacket()
 
 void power(int currentSecond, int ledID)
 { //int powerTimes[nbrChartPoint0/*Number of hour key point*/][2/*ledID*/][2/*h in sec; percent of light*/];
-  int ledIntensity;
-  int point0[2]; //last point (on chart)
-  int point1[2]; //next point (on chart)
+  /*todo static point1 && point0 = point1*/
+  static int ledIntensity;
+  static int previousLedIntensity = ledIntensity;
+  int point0[2] = {powerTimes[nbrChartPoint-1][ledID][0], powerTimes[nbrChartPoint-1][ledID][1]}; //previous point (on chart), the LAST on the chart by default
+  int point1[2] = {powerTimes[0][ledID][0], powerTimes[0][ledID][1]}; //next point (on chart), the FIRST on the chart by default
 
   int littleHInSec = -1;
   int hugeHInSec = 86401; //24H in second + 1 sec
 
   //find point0 dynamiqualy
-  for (int i = 0; i < nbrChartPoint; i++)
+  for (int i = 0; i < nbrChartPoint; i++) //check every key point on chart
   {
     if (powerTimes[i][ledID][0] > -1)
     {
-
       if (powerTimes[i][ledID][0] < currentSecond && powerTimes[i][ledID][0] >= littleHInSec)
-      { //test all hour key of [ledID] h in sec | find low point
+      { //test all hour key of [ledID] h in sec | find previous key point
         point0[0] = powerTimes[i][ledID][0];
         point0[1] = powerTimes[i][ledID][1];
         littleHInSec = powerTimes[i][ledID][0];
       }
+    }
+  }
 
-      if (point0[0] == powerTimes[nbrChartPoint - 1][ledID][0] && point0[1] == powerTimes[nbrChartPoint - 1][ledID][1])
+  //find point 1 on chart
+  for (int i = 0; i < nbrChartPoint; i++) //check every key point on chart
+  {
+    if (powerTimes[i][ledID][0] > -1)
+    {
+      if (point0[0] == powerTimes[nbrChartPoint-1][ledID][0] && point0[1] == powerTimes[nbrChartPoint-1][ledID][1])
       {
         point1[0] = powerTimes[0][ledID][0];
         point1[1] = powerTimes[0][ledID][1];
@@ -202,40 +210,41 @@ void power(int currentSecond, int ledID)
     ledIntensity = 0;
   }
 
-  int ledIntensityPercent = ledIntensity; //Used just to log.
+  if(ledIntensity != previousLedIntensity){ //test if it's useful to analogWrite
+    int ledIntensityPercent = ledIntensity; //Used just to log.
 
-  ledIntensity = map(ledIntensity, 0, 100, 0, 255);
+    ledIntensity = map(ledIntensity, 0, 100, 0, 255);
 
-  analogWrite(lights[ledID], ledIntensity);
+    analogWrite(lights[ledID], ledIntensity);
+    
 
-  Serial.print("--- Light");
-  Serial.print(ledID);
-  Serial.println(" ---");
+    Serial.print("--- Light");
+    Serial.print(ledID);
+    Serial.println(" ---");
 
-  Serial.print("Current second = ");
-  Serial.println(currentSecond);
+    Serial.print("Current second = ");
+    Serial.println(currentSecond);
 
-  Serial.print("Point0 = {");
-  Serial.print(point0[0]);
-  Serial.print(",");
-  Serial.print(point0[1]);
-  Serial.println("}");
+    Serial.print("Point0 = {");
+    Serial.print(point0[0]);
+    Serial.print(",");
+    Serial.print(point0[1]);
+    Serial.println("}");
 
-  Serial.print("Led intensity = ");
-  Serial.print(ledIntensityPercent);
-  Serial.println('%');
+    Serial.print("Led intensity = ");
+    Serial.print(ledIntensityPercent);
+    Serial.println('%');
 
-  Serial.print("Real Led intensity = ");
-  Serial.println(ledIntensity);
-  Serial.print("Intermédiaire = ");
+    Serial.print("Real Led intensity = ");
+    Serial.println(ledIntensity);
+    Serial.print("Intermédiaire = ");
 
-  //Serial.println((((point1[0] - currentSecond) * (point1[1] - point0[1])) / (point1[0] - point0[0]))); // error because divided by 0
-
-  Serial.print("Point1 = {");
-  Serial.print(point1[0]);
-  Serial.print(",");
-  Serial.print(point1[1]);
-  Serial.println("}");
+    Serial.print("Point1 = {");
+    Serial.print(point1[0]);
+    Serial.print(",");
+    Serial.print(point1[1]);
+    Serial.println("}");
+  }
 }
 
 void connectNTP()
