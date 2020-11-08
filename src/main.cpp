@@ -41,7 +41,7 @@
 
 const int lights[] = {4, 12}; //pin
 
-const int nbrChartPoint = 6;  
+const int nbrChartPoint = 6;
 
 String ssid;
 String password;
@@ -86,10 +86,15 @@ int getHinSec(int hour, int minute, int second)
 {
   return hour * 3600 + minute * 60 + second;
 }
-int getDay(long epochTime)
+/*int getDay(long epochTime)
 {
   return (((epochTime / 86400L) + 4) % 7); //0 is Sunday
-}
+}*/
+
+/*uint8_t getDayNumber(long epochTime){
+
+}*/
+
 int getHours(long epochTime)
 {
   return ((epochTime % 86400L) / 3600);
@@ -115,7 +120,8 @@ unsigned long getEpocheTime(uint8_t *data)
   // now convert NTP time into UNIX timestamp:
   Serial.print("Unix time = ");
   // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
-  const unsigned long seventyYears = 2208988800UL - 7200; //
+  //const unsigned long seventyYears = 2208988800UL - 7200; //Summer
+  const unsigned long seventyYears = 2208988800UL - 3600; //winter
   // subtract seventy years:
   unsigned long epoch = secsSince1900 - seventyYears;
   // print Unix time:
@@ -156,8 +162,8 @@ void power(int currentSecond, int ledID)
   /*todo static point1 && point0 = point1*/
   static int ledIntensity;
   static int previousLedIntensity = ledIntensity;
-  int point0[2] = {powerTimes[nbrChartPoint-1][ledID][0], powerTimes[nbrChartPoint-1][ledID][1]}; //previous point (on chart), the LAST on the chart by default
-  int point1[2] = {powerTimes[0][ledID][0], powerTimes[0][ledID][1]}; //next point (on chart), the FIRST on the chart by default
+  int point0[2] = {powerTimes[nbrChartPoint - 1][ledID][0], powerTimes[nbrChartPoint - 1][ledID][1]}; //previous point (on chart), the LAST on the chart by default
+  int point1[2] = {powerTimes[0][ledID][0], powerTimes[0][ledID][1]};                                 //next point (on chart), the FIRST on the chart by default
 
   int littleHInSec = -1;
   int hugeHInSec = 86401; //24H in second + 1 sec
@@ -167,7 +173,7 @@ void power(int currentSecond, int ledID)
   {
     if (powerTimes[i][ledID][0] > -1)
     {
-      if (powerTimes[i][ledID][0] < currentSecond && powerTimes[i][ledID][0] >= littleHInSec)
+      if (powerTimes[i][ledID][0] <= currentSecond && powerTimes[i][ledID][0] >= littleHInSec)
       { //test all hour key of [ledID] h in sec | find previous key point
         point0[0] = powerTimes[i][ledID][0];
         point0[1] = powerTimes[i][ledID][1];
@@ -181,13 +187,13 @@ void power(int currentSecond, int ledID)
   {
     if (powerTimes[i][ledID][0] > -1)
     {
-      if (point0[0] == powerTimes[nbrChartPoint-1][ledID][0] && point0[1] == powerTimes[nbrChartPoint-1][ledID][1])
+      if (point0[0] == powerTimes[nbrChartPoint - 1][ledID][0] && point0[1] == powerTimes[nbrChartPoint - 1][ledID][1])
       {
         point1[0] = powerTimes[0][ledID][0];
         point1[1] = powerTimes[0][ledID][1];
         hugeHInSec = powerTimes[0][ledID][0];
       }
-      else if (powerTimes[i][ledID][0] > currentSecond && powerTimes[i][ledID][0] <= hugeHInSec)
+      else if (powerTimes[i][ledID][0] >= currentSecond && powerTimes[i][ledID][0] <= hugeHInSec)
       { //test all hour key of [ledID] h in sec | find high point
         point1[0] = powerTimes[i][ledID][0];
         point1[1] = powerTimes[i][ledID][1];
@@ -198,27 +204,34 @@ void power(int currentSecond, int ledID)
 
   if ((point1[0] - point0[0]) != 0) //To be shure that we don't have division by 0
   {
-    ledIntensity = point0[1] + (((currentSecond - point0[0]) * (point1[1] - point0[1])) / (point1[0] - point0[0])); //max 100
+    ledIntensity = abs((int)round(point0[1] + (currentSecond - point0[0]) * (point1[1] - point0[1]) / (point1[0] - point0[0]))); //max 100
   }
   else
   {
     ledIntensity = 0;
   }
 
-  if (ledIntensity < 0)
+  /*if (ledIntensity < 0)
   {
-    ledIntensity = 0;
-  }
+    ledIntensity = -ledIntensity;
+  }*/
 
-  if(ledIntensity != previousLedIntensity){ //test if it's useful to analogWrite
-    int ledIntensityPercent = ledIntensity; //Used just to log.
+  if (ledIntensity != previousLedIntensity)
+  { //test if it's useful to analogWrite
+    //int ledIntensityPercent = ledIntensity; //Used just to log.
 
     ledIntensity = map(ledIntensity, 0, 100, 0, 255);
 
-    analogWrite(lights[ledID], ledIntensity);
-    
+    if (ledIntensity <= 0)
+    {
+      digitalWrite(lights[ledID], LOW);
+    }
+    else
+    {
+      analogWrite(lights[ledID], ledIntensity);
+    }
 
-    Serial.print("--- Light");
+    /*Serial.print("--- Light");
     Serial.print(ledID);
     Serial.println(" ---");
 
@@ -229,13 +242,17 @@ void power(int currentSecond, int ledID)
     Serial.print(point0[0]);
     Serial.print(",");
     Serial.print(point0[1]);
-    Serial.println("}");
+    Serial.println("}");*/
 
-    Serial.print("Led intensity = ");
-    Serial.print(ledIntensityPercent);
-    Serial.println('%');
+    //Serial.print("Led intensity = ");
+    //Serial.print(ledIntensity);
+    //Serial.println('%');
 
-    Serial.print("Real Led intensity = ");
+    //Serial.println("------------------");
+    //Serial.printf("(%d-%d)/%d/(%d-%d)\t", currentSecond,point0[0],point1[1],point1[0],point0[0]);
+    //Serial.printf("%d / %d = %d\n", (currentSecond - point0[0]) * (point1[1] - point0[1]), (point1[0] - point0[0]), ledIntensity);
+
+    /**Serial.print("Real Led intensity = ");
     Serial.println(ledIntensity);
     Serial.print("Intermédiaire = ");
 
@@ -243,7 +260,7 @@ void power(int currentSecond, int ledID)
     Serial.print(point1[0]);
     Serial.print(",");
     Serial.print(point1[1]);
-    Serial.println("}");
+    Serial.println("}");*/
   }
 }
 
