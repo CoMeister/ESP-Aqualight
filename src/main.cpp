@@ -360,8 +360,6 @@ void netStart(String ssid, String pass, IPAddress ip)
   {
     WiFi.disconnect();
   }
-
-  configTime(MY_TZ, 0, NTPSRV);
 }
 
 void writeDatasIntoFile()
