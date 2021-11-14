@@ -214,7 +214,7 @@ function getDatasFromChart(id) {
 
 $(document).ready(function () {
     ipServ = location.host;
-    ipServ = "192.168.1.6";
+    //ipServ = "192.168.1.6";
     ctx.height = 300;
     myChart = new Chart(ctx, config);
     ws = new WebSocket("ws://" + ipServ + "/ws");
